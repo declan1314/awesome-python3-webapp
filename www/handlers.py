@@ -16,6 +16,9 @@ from apis import Page, APIValueError, APIResourceNotFoundError
 
 from models import User, Comment, Blog, next_id
 from config import configs
+import paramiko
+
+import os
 
 COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret
@@ -96,11 +99,14 @@ def get_blog(id):
     comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
     for c in comments:
         c.html_content = text2html(c.content)
-    blog.html_content = markdown2.markdown(blog.content)
+    ext ={
+        'html_content':  markdown2.markdown(blog.content)
+    }
     return {
         '__template__': 'blog.html',
         'blog': blog,
-        'comments': comments
+        'comments': comments,
+        'ext': ext
     }
 
 @get('/register')
@@ -310,3 +316,65 @@ def api_delete_blog(request, *, id):
     blog = yield from Blog.find(id)
     yield from blog.remove()
     return dict(id=id)
+
+
+
+@get('/api/os/')
+def api_os_path():
+    return '12344'
+
+def download():
+    transport = paramiko.Transport(("139.9.60.232", 22))  # 获取Transport实例
+    transport.connect(username="root", password="Thankyou13123496")  # 建立连接
+
+    # 创建sftp对象，SFTPClient是定义怎么传输文件、怎么交互文件
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    # 将本地 api.py 上传至服务器 /www/test.py。文件上传并重命名为test.py
+    # sftp.put("E:/test/api.py", "/www/test.py")
+
+    # 将服务器 /www/test.py 下载到本地 aaa.py。文件下载并重命名为aaa.py
+    sftp.get("/root/test/e.txt", "D:/test/a.text")
+
+    # 关闭连接
+    transport.close()
+
+def getFoldersAndFiles():
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    # 连接服务器
+    try:
+        ssh.connect(
+            hostname="139.9.60.232",
+            port=22,
+            username="root",
+            password="Thankyou13123496"
+        )
+    except Exception as e:
+        print(e)
+        return
+
+    # 设置一个内部函数，执行shell命令并返回输出结果
+    def run_shell(cmd):
+        ssh_in, ssh_out, ssh_error = ssh.exec_command(cmd)
+        result = ssh_out.read() or ssh_error.read()
+        return result.decode().strip()
+
+    # 获取指定文件夹的绝对地址
+    cmd_get_path = 'cd /root/test;pwd'
+    db_path = run_shell(cmd_get_path)
+
+    # 获取指定文件夹中文件的名称，并跟上面得到的文件夹绝对地址组合起来
+    cmd_get_sqls = 'cd /root/test;find -type f'
+    sqls = run_shell(cmd_get_sqls)
+    # lis = ['{}/{}'.format(db_path, each[2:]) for each in sqls.split('\n')]
+    lis = [ each[2:] for each in sqls.split('\n')]
+    print(lis)
+
+    # 关闭连接
+    ssh.close()
+    return lis
+
+if __name__ == "__main__":
+    download()
+    # getFoldersAndFiles()

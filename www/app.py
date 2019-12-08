@@ -20,6 +20,8 @@ from config import configs
 import orm
 from coroweb import add_routes, add_static
 
+from jinja2 import Undefined
+
 from handlers import cookie2user, COOKIE_NAME
 
 def init_jinja2(app, **kw):
@@ -125,6 +127,8 @@ def response_factory(app, handler):
     return response
 
 def datetime_filter(t):
+    if isinstance(t, Undefined):
+        return ''
     delta = int(time.time() - t)
     if delta < 60:
         return u'1分钟前'

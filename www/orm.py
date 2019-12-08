@@ -4,60 +4,115 @@
 __author__ = 'Michael Liao'
 
 import asyncio, logging
+import sqlite3
 
-import aiomysql
+from collections import namedtuple
+
+# import aiomysql
 
 def log(sql, args=()):
     logging.info('SQL: %s' % sql)
 
+# @asyncio.coroutine
+# def create_pool(loop, **kw):
+#     logging.info('create database connection pool...')
+#     global __pool
+#     __pool = yield from aiomysql.create_pool(
+#         host=kw.get('host', 'localhost'),
+#         port=kw.get('port', 3306),
+#         user=kw['user'],
+#         password=kw['password'],
+#         db=kw['db'],
+#         charset=kw.get('charset', 'utf8'),
+#         autocommit=kw.get('autocommit', True),
+#         maxsize=kw.get('maxsize', 10),
+#         minsize=kw.get('minsize', 1),
+#         loop=loop
+#     )
+#
+# @asyncio.coroutine
+# def select(sql, args, size=None):
+#     log(sql, args)
+#     global __pool
+#     with (yield from __pool) as conn:
+#         cur = yield from conn.cursor(aiomysql.DictCursor)
+#         yield from cur.execute(sql.replace('?', '%s'), args or ())
+#         if size:
+#             rs = yield from cur.fetchmany(size)
+#         else:
+#             rs = yield from cur.fetchall()
+#         yield from cur.close()
+#         logging.info('rows returned: %s' % len(rs))
+#         return rs
+#
+# @asyncio.coroutine
+# def execute(sql, args, autocommit=True):
+#     log(sql)
+#     with (yield from __pool) as conn:
+#         if not autocommit:
+#             yield from conn.begin()
+#         try:
+#             cur = yield from conn.cursor()
+#             yield from cur.execute(sql.replace('?', '%s'), args)
+#             affected = cur.rowcount
+#             yield from cur.close()
+#             if not autocommit:
+#                 yield from conn.commit()
+#         except BaseException as e:
+#             if not autocommit:
+#                 yield from conn.rollback()
+#             raise
+#         return affected
+
 @asyncio.coroutine
 def create_pool(loop, **kw):
-    logging.info('create database connection pool...')
-    global __pool
-    __pool = yield from aiomysql.create_pool(
-        host=kw.get('host', 'localhost'),
-        port=kw.get('port', 3306),
-        user=kw['user'],
-        password=kw['password'],
-        db=kw['db'],
-        charset=kw.get('charset', 'utf8'),
-        autocommit=kw.get('autocommit', True),
-        maxsize=kw.get('maxsize', 10),
-        minsize=kw.get('minsize', 1),
-        loop=loop
-    )
+    # logging.info('create database connection pool...')
+    # global __pool
+    # __pool = yield from aiomysql.create_pool(
+    #     host=kw.get('host', 'localhost'),
+    #     port=kw.get('port', 3306),
+    #     user=kw['user'],
+    #     password=kw['password'],
+    #     db=kw['db'],
+    #     charset=kw.get('charset', 'utf8'),
+    #     autocommit=kw.get('autocommit', True),
+    #     maxsize=kw.get('maxsize', 10),
+    #     minsize=kw.get('minsize', 1),
+    #     loop=loop
+    # )
+    pass
 
 @asyncio.coroutine
 def select(sql, args, size=None):
     log(sql, args)
     global __pool
-    with (yield from __pool) as conn:
-        cur = yield from conn.cursor(aiomysql.DictCursor)
-        yield from cur.execute(sql.replace('?', '%s'), args or ())
+    with sqlite3.connect('test.db') as conn:
+        cur = conn.cursor()
+        cur.execute(sql, args or ())
         if size:
-            rs = yield from cur.fetchmany(size)
+            rs = cur.fetchmany(size)
         else:
-            rs = yield from cur.fetchall()
-        yield from cur.close()
+            rs = cur.fetchall()
+        cur.close()
         logging.info('rows returned: %s' % len(rs))
         return rs
 
 @asyncio.coroutine
 def execute(sql, args, autocommit=True):
     log(sql)
-    with (yield from __pool) as conn:
+    with sqlite3.connect('test.db') as conn:
         if not autocommit:
-            yield from conn.begin()
+            conn.begin()
         try:
-            cur = yield from conn.cursor()
-            yield from cur.execute(sql.replace('?', '%s'), args)
+            cur = conn.cursor()
+            cur.execute(sql.replace('?', '%s'), args)
             affected = cur.rowcount
-            yield from cur.close()
+            cur.close()
             if not autocommit:
-                yield from conn.commit()
+                conn.commit()
         except BaseException as e:
             if not autocommit:
-                yield from conn.rollback()
+                conn.rollback()
             raise
         return affected
 
@@ -137,6 +192,7 @@ class ModelMetaclass(type):
         attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields) + 1))
         attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
         attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName, primaryKey)
+        attrs['__namedtuple__'] = namedtuple(name[0].lower() + name[1:], [primaryKey] + fields)
         return type.__new__(cls, name, bases, attrs)
 
 class Model(dict, metaclass=ModelMetaclass):
@@ -192,7 +248,7 @@ class Model(dict, metaclass=ModelMetaclass):
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
         rs = yield from select(' '.join(sql), args)
-        return [cls(**r) for r in rs]
+        return map(cls.__namedtuple__._make, rs)
 
     @classmethod
     @asyncio.coroutine
@@ -205,7 +261,7 @@ class Model(dict, metaclass=ModelMetaclass):
         rs = yield from select(' '.join(sql), args, 1)
         if len(rs) == 0:
             return None
-        return rs[0]['_num_']
+        return rs[0][0]
 
     @classmethod
     @asyncio.coroutine
@@ -214,7 +270,7 @@ class Model(dict, metaclass=ModelMetaclass):
         rs = yield from select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
         if len(rs) == 0:
             return None
-        return cls(**rs[0])
+        return cls.__namedtuple__._make(rs[0])
 
     @asyncio.coroutine
     def save(self):
