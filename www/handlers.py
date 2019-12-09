@@ -14,7 +14,7 @@ from aiohttp import web
 from coroweb import get, post
 from apis import Page, APIValueError, APIResourceNotFoundError
 
-from models import User, Comment, Blog, next_id
+from www.models import User, Comment, Blog, next_id, AppServer, RootPath
 from config import configs
 import paramiko
 
@@ -23,9 +23,11 @@ import os
 COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret
 
+
 def check_admin(request):
     if request.__user__ is None or not request.__user__.admin:
         raise APIPermissionError()
+
 
 def get_page_index(page_str):
     p = 1
@@ -37,6 +39,7 @@ def get_page_index(page_str):
         p = 1
     return p
 
+
 def user2cookie(user, max_age):
     '''
     Generate cookie str by user.
@@ -47,9 +50,12 @@ def user2cookie(user, max_age):
     L = [user.id, expires, hashlib.sha1(s.encode('utf-8')).hexdigest()]
     return '-'.join(L)
 
+
 def text2html(text):
-    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'), filter(lambda s: s.strip() != '', text.split('\n')))
+    lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'),
+                filter(lambda s: s.strip() != '', text.split('\n')))
     return ''.join(lines)
+
 
 @asyncio.coroutine
 def cookie2user(cookie_str):
@@ -78,6 +84,7 @@ def cookie2user(cookie_str):
         logging.exception(e)
         return None
 
+
 @get('/')
 def index(*, page='1'):
     page_index = get_page_index(page)
@@ -93,14 +100,15 @@ def index(*, page='1'):
         'blogs': blogs
     }
 
+
 @get('/blog/{id}')
 def get_blog(id):
     blog = yield from Blog.find(id)
     comments = yield from Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
     for c in comments:
         c.html_content = text2html(c.content)
-    ext ={
-        'html_content':  markdown2.markdown(blog.content)
+    ext = {
+        'html_content': markdown2.markdown(blog.content)
     }
     return {
         '__template__': 'blog.html',
@@ -109,17 +117,20 @@ def get_blog(id):
         'ext': ext
     }
 
+
 @get('/register')
 def register():
     return {
         '__template__': 'register.html'
     }
 
+
 @get('/signin')
 def signin():
     return {
         '__template__': 'signin.html'
     }
+
 
 @post('/api/authenticate')
 def authenticate(*, email, passwd):
@@ -146,6 +157,7 @@ def authenticate(*, email, passwd):
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
 
+
 @get('/signout')
 def signout(request):
     referer = request.headers.get('Referer')
@@ -154,9 +166,11 @@ def signout(request):
     logging.info('user signed out.')
     return r
 
+
 @get('/manage/')
 def manage():
     return 'redirect:/manage/comments'
+
 
 @get('/manage/comments')
 def manage_comments(*, page='1'):
@@ -165,12 +179,14 @@ def manage_comments(*, page='1'):
         'page_index': get_page_index(page)
     }
 
+
 @get('/manage/blogs')
 def manage_blogs(*, page='1'):
     return {
         '__template__': 'manage_blogs.html',
         'page_index': get_page_index(page)
     }
+
 
 @get('/manage/blogs/create')
 def manage_create_blog():
@@ -180,6 +196,7 @@ def manage_create_blog():
         'action': '/api/blogs'
     }
 
+
 @get('/manage/blogs/edit')
 def manage_edit_blog(*, id):
     return {
@@ -188,12 +205,14 @@ def manage_edit_blog(*, id):
         'action': '/api/blogs/%s' % id
     }
 
+
 @get('/manage/users')
 def manage_users(*, page='1'):
     return {
         '__template__': 'manage_users.html',
         'page_index': get_page_index(page)
     }
+
 
 @get('/api/comments')
 def api_comments(*, page='1'):
@@ -205,6 +224,7 @@ def api_comments(*, page='1'):
     comments = yield from Comment.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return dict(page=p, comments=comments)
 
+
 @post('/api/blogs/{id}/comments')
 def api_create_comment(id, request, *, content):
     user = request.__user__
@@ -215,9 +235,11 @@ def api_create_comment(id, request, *, content):
     blog = yield from Blog.find(id)
     if blog is None:
         raise APIResourceNotFoundError('Blog')
-    comment = Comment(blog_id=blog.id, user_id=user.id, user_name=user.name, user_image=user.image, content=content.strip())
+    comment = Comment(blog_id=blog.id, user_id=user.id, user_name=user.name, user_image=user.image,
+                      content=content.strip())
     yield from comment.save()
     return comment
+
 
 @post('/api/comments/{id}/delete')
 def api_delete_comments(id, request):
@@ -227,6 +249,7 @@ def api_delete_comments(id, request):
         raise APIResourceNotFoundError('Comment')
     yield from c.remove()
     return dict(id=id)
+
 
 @get('/api/users')
 def api_get_users(*, page='1'):
@@ -240,8 +263,10 @@ def api_get_users(*, page='1'):
         u.passwd = '******'
     return dict(page=p, users=users)
 
+
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
+
 
 @post('/api/users')
 def api_register_user(*, email, name, passwd):
@@ -256,7 +281,8 @@ def api_register_user(*, email, name, passwd):
         raise APIError('register:failed', 'email', 'Email is already in use.')
     uid = next_id()
     sha1_passwd = '%s:%s' % (uid, passwd)
-    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(), image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
+                image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
     yield from user.save()
     # make session cookie:
     r = web.Response()
@@ -265,6 +291,7 @@ def api_register_user(*, email, name, passwd):
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
+
 
 @get('/api/blogs')
 def api_blogs(*, page='1'):
@@ -276,10 +303,12 @@ def api_blogs(*, page='1'):
     blogs = yield from Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
     return dict(page=p, blogs=blogs)
 
+
 @get('/api/blogs/{id}')
 def api_get_blog(*, id):
     blog = yield from Blog.find(id)
     return blog
+
 
 @post('/api/blogs')
 def api_create_blog(request, *, name, summary, content):
@@ -290,9 +319,11 @@ def api_create_blog(request, *, name, summary, content):
         raise APIValueError('summary', 'summary cannot be empty.')
     if not content or not content.strip():
         raise APIValueError('content', 'content cannot be empty.')
-    blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image, name=name.strip(), summary=summary.strip(), content=content.strip())
+    blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image,
+                name=name.strip(), summary=summary.strip(), content=content.strip())
     yield from blog.save()
     return blog
+
 
 @post('/api/blogs/{id}')
 def api_update_blog(id, request, *, name, summary, content):
@@ -310,6 +341,7 @@ def api_update_blog(id, request, *, name, summary, content):
     yield from blog.update()
     return blog
 
+
 @post('/api/blogs/{id}/delete')
 def api_delete_blog(request, *, id):
     check_admin(request)
@@ -318,10 +350,47 @@ def api_delete_blog(request, *, id):
     return dict(id=id)
 
 
+@get('/api/servers')
+def api_servers(*, page='1'):
+    page_index = get_page_index(page)
+    num = yield from AppServer.findNumber('count(id)')
+    page = Page(num, page_index)
+    if num == 0:
+        app_servers = []
+    else:
+        app_servers = yield from AppServer.findAll(orderBy='created_date desc', limit=(page.offset, page.limit))
+    return {
+        '__template__': 'app_servers.html',
+        'page': page,
+        'servers': app_servers
+    }
 
-@get('/api/os/')
-def api_os_path():
-    return '12344'
+
+@get('/api/server/{id}/paths')
+def api_paths(*, id, page=1):
+    page_index = get_page_index(page)
+    num = yield from RootPath.findNumber('count(id)')
+    page = Page(num, page_index)
+    if num == 0:
+        root_paths = []
+    else:
+        root_paths = yield from RootPath.findAll(orderBy='created_date desc', where='app_server_id = ' + id,
+                                                 limit=(page.offset, page.limit))
+    return {
+        '__template__': 'root_paths.html',
+        'page': page,
+        'paths': root_paths,
+        'server_id': id
+    }
+
+
+@get('/api/server/{server_id}/path/{path_id}')
+def api_path(*, server_id, path_id):
+    app_server = yield from AppServer.find(server_id)
+    root_path = yield from RootPath.find(path_id)
+    return getFoldersAndFiles(hostname=app_server.host, port=app_server.ssh_port, username=app_server.username,
+                              password=app_server.password, root_path=root_path.path)
+
 
 def download():
     transport = paramiko.Transport(("139.9.60.232", 22))  # 获取Transport实例
@@ -339,16 +408,17 @@ def download():
     # 关闭连接
     transport.close()
 
-def getFoldersAndFiles():
+
+def getFoldersAndFiles(hostname, port, username, password, root_path):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     # 连接服务器
     try:
         ssh.connect(
-            hostname="139.9.60.232",
-            port=22,
-            username="root",
-            password="Thankyou13123496"
+            hostname=hostname,
+            port=port,
+            username=username,
+            password=password
         )
     except Exception as e:
         print(e)
@@ -361,19 +431,20 @@ def getFoldersAndFiles():
         return result.decode().strip()
 
     # 获取指定文件夹的绝对地址
-    cmd_get_path = 'cd /root/test;pwd'
-    db_path = run_shell(cmd_get_path)
+    # cmd_get_path = 'cd /root/test;pwd'
+    # db_path = run_shell(cmd_get_path)
 
     # 获取指定文件夹中文件的名称，并跟上面得到的文件夹绝对地址组合起来
-    cmd_get_sqls = 'cd /root/test;find -type f'
+    cmd_get_sqls = 'cd ' + root_path + ';find -type f'
     sqls = run_shell(cmd_get_sqls)
     # lis = ['{}/{}'.format(db_path, each[2:]) for each in sqls.split('\n')]
-    lis = [ each[2:] for each in sqls.split('\n')]
+    lis = [each[2:] for each in sqls.split('\n')]
     print(lis)
 
     # 关闭连接
     ssh.close()
     return lis
+
 
 if __name__ == "__main__":
     download()

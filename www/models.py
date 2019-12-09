@@ -67,6 +67,7 @@ class AppServer(Model):
     password = StringField(ddl='varchar(32)')
     ssh_port = IntegerField()
 
+
 class RootPath(Model):
     __table__ = 'root_path'
 

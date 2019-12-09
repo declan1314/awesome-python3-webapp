@@ -1,0 +1,23 @@
+{% extends '__base__.html' %}
+
+{% block title %}服务器{% endblock %}
+
+{% block beforehead %}
+
+<script>
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+    <div class="uk-width-medium-3-4">
+    {% for server in servers %}
+        <article class="uk-article">
+            <a href="/api/server/{{ server.id }}/paths">{{ server.name }}({{server.host}})</a>
+        </article>
+        <hr class="uk-article-divider">
+    {% endfor %}
+    {{ pagination('/?page=', page) }}
+    </div>
+{% endblock %}
