@@ -331,7 +331,7 @@ def download(hostname, port, username, password, root_path, file_path):
 
     # zipfile.ZipFile()
 
-    with open(abs_file, 'r') as f:
+    with open(abs_file, 'r', encoding='utf-8') as f:
         return f.read(), os.path.split(abs_file)[1]
     return null, null
 
