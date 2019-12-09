@@ -16,6 +16,21 @@ def next_id():
     return '%015d%s000' % (int(time.time() * 1000), uuid.uuid4().hex)
 
 
+class DownloadLog(Model):
+    __table__ = 'download_log'
+
+    created_by = IntegerField()
+    created_date = FloatField(default=time.time)
+    updated_by = IntegerField()
+    updated_date = FloatField(default=time.time)
+    id = IntegerField(primary_key=True, default=next_id)
+    name = StringField(ddl='varchar(64)')
+    server = StringField(ddl='varchar(64)')
+    file = StringField(ddl='varchar(256)')
+    created_by_name = StringField(ddl='varchar(64)')
+    enable_flag = BooleanField()
+
+
 class User(Model):
     __table__ = 'users'
 
@@ -23,12 +38,13 @@ class User(Model):
     created_date = FloatField(default=time.time)
     updated_by = IntegerField()
     updated_date = FloatField(default=time.time)
-    id = StringField(primary_key=True, default=next_id, ddl='varchar(50)')
+    id = IntegerField(primary_key=True, default=next_id)
     email = StringField(ddl='varchar(50)')
     passwd = StringField(ddl='varchar(50)')
     admin = BooleanField()
     name = StringField(ddl='varchar(50)')
     image = StringField(ddl='varchar(500)')
+
 
 class AppServer(Model):
     __table__ = 'app_server'

@@ -16,10 +16,9 @@ from aiohttp import web
 from coroweb import get, post
 from apis import Page, APIValueError, APIResourceNotFoundError, APIPermissionError, APIError
 
-from models import User, next_id, AppServer, RootPath
+from models import User, next_id, AppServer, RootPath, DownloadLog
 from config import configs
 import paramiko
-
 
 import os
 
@@ -151,6 +150,26 @@ def manage_users(*, page='1'):
     }
 
 
+@get('/manage/logs')
+def manage_logs(*, page='1'):
+    return {
+        '__template__': 'manage_logs.html',
+        'page_index': get_page_index(page)
+    }
+
+
+@get('/api/logs')
+def api_get_logs(request, *, page='1'):
+    check_admin(request)
+    page_index = get_page_index(page)
+    num = yield from DownloadLog.findNumber('count(id)')
+    p = Page(num, page_index)
+    if num == 0:
+        return dict(page=p, users=())
+    download_logs = yield from DownloadLog.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
+    return dict(page=p, download_logs=[download_log._asdict() for download_log in download_logs])
+
+
 @get('/api/users')
 def api_get_users(request, *, page='1'):
     check_admin(request)
@@ -274,7 +293,7 @@ def get_path(request, server_id, path_id, path=''):
 
 
 @get('/api/servers/{server_id}/paths/{path_id}/path/{path}/download')
-def api_download(*, server_id, path_id, path):
+def api_download(request, *, server_id, path_id, path):
     app_server = yield from AppServer.find(server_id)
     root_path = yield from RootPath.find(path_id)
     content, filename = download(hostname=app_server.host, port=app_server.ssh_port,
@@ -285,6 +304,10 @@ def api_download(*, server_id, path_id, path):
         headers={'Content-Disposition': 'attachment;filename={}'.format(filename)},
         body=content
     )
+
+    download_log = DownloadLog(id=next_id(), file=root_path.path + '/' + path, server=app_server.host, created_by_name=request.__user__.name,
+                               created_by=request.__user__.id, updated_by=request.__user__.id)
+    yield from download_log.save()
     return response
 
 
@@ -306,7 +329,7 @@ def download(hostname, port, username, password, root_path, file_path):
     # 关闭连接
     transport.close()
 
-    zipfile.ZipFile()
+    # zipfile.ZipFile()
 
     with open(abs_file, 'r') as f:
         return f.read(), os.path.split(abs_file)[1]
@@ -339,13 +362,13 @@ def get_folders_and_files(hostname, port, username, password, root_path, relativ
     relative_path_left = ('/' + relative_path) if not len(relative_path) == 0 else ''
     relative_path_right = (relative_path + '/') if not len(relative_path) == 0 else ''
 
-    cmd_get_sqls = 'cd ' + root_path + relative_path_left + ";ls -alt | grep '^d' | awk '{print $9}'"
+    cmd_get_sqls = 'cd ' + root_path + relative_path_left + ";ls -alt --ignore='.' --ignore='..' | grep '^d' | awk '{print $9}'"
     sqls = run_shell(cmd_get_sqls)
 
     f_list = []
-    if len(sqls[5:]) > 0:
+    if len(sqls) > 0:
         f_list.extend(
-            [{'value': relative_path_right + each, 'type': 'folder', 'name': each} for each in sqls[:-5].split('\n')])
+            [{'value': relative_path_right + each, 'type': 'folder', 'name': each} for each in sqls.split('\n')])
 
     cmd_get_sqls = 'cd ' + root_path + relative_path_left + ";ls -alt | grep '^-' | awk '{print $9}'"
     sqls = run_shell(cmd_get_sqls)
