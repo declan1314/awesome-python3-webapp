@@ -11,13 +11,26 @@
 
 {% block content %}
 
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <div class="uk-panel uk-panel-box">
+            <ul class="uk-breadcrumb">
+                <li class="uk-active"><a href="/api/servers">服务器【{{ server.name }}({{ server.host }})】</a></li>
+                <li class="uk-active"><a href="/api/servers/{{ server.id }}/paths">根路径【{{ path.name }}({{ path.path }})】</a></li>
+                <li class="uk-active"><span>文件选择下载</span></li>
+            </ul>
+        </div>
+    </div>
+
     <div class="uk-width-medium-3-4">
-    {% for path in paths %}
-        <article class="uk-article">
-            <a href="/api/server/{{ server_id }}/path/{{ path.id }}">{{ path.name }}({{ path.path }})</a>
-        </article>
-        <hr class="uk-article-divider">
-    {% endfor %}
-    {{ pagination('/?page=', page) }}
+        <a style="color: darkgreen;" href="{{ back_url }}">返回</a>
+        <hr class="uk-article-divider"/>
+        {% for f in f_list %}
+            {% if f.type == 'folder' %}
+                <a style="color:red;" href="/api/servers/{{ server.id }}/paths/{{ path.id }}/path/{{ f['value']|quote_plus }}">{{ f['name'] }}</a>
+            {% else %}
+                <a href="/api/servers/{{ server.id }}/paths/{{ path.id }}/path/{{ f['value']|quote_plus }}/download">{{ f['name'] }}</a>
+            {% endif %}
+            <hr class="uk-article-divider" />
+        {% endfor %}
     </div>
 {% endblock %}

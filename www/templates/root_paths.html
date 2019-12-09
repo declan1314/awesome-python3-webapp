@@ -10,12 +10,20 @@
 {% endblock %}
 
 {% block content %}
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <div class="uk-panel uk-panel-box">
+            <ul class="uk-breadcrumb">
+                <li class="uk-active"><a href="/api/servers">服务器【{{ server.name }}({{ server.host }})】</a></li>
+                <li class="uk-active"><span>根路径</span></li>
+            </ul>
+        </div>
+    </div>
 
     <div class="uk-width-medium-3-4">
+    <a style="color: darkgreen;" href="{{ back_url }}">返回</a>
+    <hr class="uk-article-divider">
     {% for path in paths %}
-        <article class="uk-article">
-            <a href="/api/server/{{ server_id }}/path/{{ path.id }}">{{ path.name }}({{ path.path }})</a>
-        </article>
+        <a href="/api/servers/{{ server_id }}/paths/{{ path.id }}">{{ path.name }}({{ path.path }})</a>
         <hr class="uk-article-divider">
     {% endfor %}
     {{ pagination('/?page=', page) }}

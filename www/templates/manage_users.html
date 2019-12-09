@@ -8,6 +8,7 @@
 
 function initVM(data) {
     $('#vm').show();
+    console.log(data)
     var vm = new Vue({
         el: '#vm',
         data: {
@@ -38,9 +39,7 @@ $(function() {
     <div class="uk-width-1-1 uk-margin-bottom">
         <div class="uk-panel uk-panel-box">
             <ul class="uk-breadcrumb">
-                <li><a href="/manage/comments">评论</a></li>
-                <li><a href="/manage/blogs">日志</a></li>
-                <li class="uk-active"><span>用户</span></li>
+                <li class="uk-active"><span>用户管理</span></li>
             </ul>
         </div>
     </div>
@@ -62,7 +61,7 @@ $(function() {
                 </tr>
             </thead>
             <tbody>
-                <tr v-repeat="user: users" >
+                <tr v-repeat="user: users">
                     <td>
                         <span v-text="user.name"></span>
                         <span v-if="user.admin" style="color:#d05"><i class="uk-icon-key"></i> 管理员</span>
@@ -71,7 +70,7 @@ $(function() {
                         <a v-attr="href: 'mailto:'+user.email" v-text="user.email"></a>
                     </td>
                     <td>
-                        <span v-text="user.created_at.toDateTime()"></span>
+                        <span v-text="user.created_date.toDateTime()"></span>
                     </td>
                 </tr>
             </tbody>

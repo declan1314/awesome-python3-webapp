@@ -19,7 +19,7 @@
     blog.content = dictionary[@"content"];
     blog.user_id = dictionary[@"user_id"];
     blog.user_name = dictionary[@"user_name"];
-    blog.created_at = dictionary[@"created_at"];
+    blog.created_date = dictionary[@"created_date"];
     return blog;
 }
 

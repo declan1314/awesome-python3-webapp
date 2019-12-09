@@ -109,7 +109,7 @@ def execute(sql, args, autocommit=True):
             conn.begin()
         try:
             cur = conn.cursor()
-            cur.execute(sql.replace('?', '%s'), args)
+            cur.execute(sql, args)
             affected = cur.rowcount
             cur.close()
             if not autocommit:
@@ -263,7 +263,6 @@ class Model(dict, metaclass=ModelMetaclass):
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
         rs = yield from select(' '.join(sql), args)
-        # return map(cls.__namedtuple__._make, rs)
         return [cls.__namedtuple__._make(r) for r in rs]
 
     @classmethod

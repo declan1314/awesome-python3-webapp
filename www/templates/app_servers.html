@@ -10,11 +10,18 @@
 {% endblock %}
 
 {% block content %}
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <div class="uk-panel uk-panel-box">
+            <ul class="uk-breadcrumb">
+                <li class="uk-active"><span>服务器</span></li>
+            </ul>
+        </div>
+    </div>
 
     <div class="uk-width-medium-3-4">
     {% for server in servers %}
         <article class="uk-article">
-            <a href="/api/server/{{ server.id }}/paths">{{ server.name }}({{server.host}})</a>
+            <a href="/api/servers/{{ server.id }}/paths">{{ server.name }}({{server.host}})</a>
         </article>
         <hr class="uk-article-divider">
     {% endfor %}
