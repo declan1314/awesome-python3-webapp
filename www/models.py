@@ -23,7 +23,7 @@ class DownloadLog(Model):
     created_date = FloatField(default=time.time)
     updated_by = IntegerField()
     updated_date = FloatField(default=time.time)
-    id = IntegerField(primary_key=True, default=next_id)
+    id = StringField(ddl='varchar(64)', primary_key=True, default=next_id)
     name = StringField(ddl='varchar(64)')
     server = StringField(ddl='varchar(64)')
     file = StringField(ddl='varchar(256)')
@@ -32,28 +32,28 @@ class DownloadLog(Model):
 
 
 class User(Model):
-    __table__ = 'users'
+    __table__ = 'user'
 
-    created_by = IntegerField()
+    created_by = StringField(ddl='varchar(64)')
     created_date = FloatField(default=time.time)
-    updated_by = IntegerField()
+    updated_by = StringField(ddl='varchar(64)')
     updated_date = FloatField(default=time.time)
-    id = IntegerField(primary_key=True, default=next_id)
-    email = StringField(ddl='varchar(50)')
-    passwd = StringField(ddl='varchar(50)')
+    id = StringField(ddl='varchar(64)', primary_key=True, default=next_id)
+    email = StringField(ddl='varchar(32)')
+    passwd = StringField(ddl='varchar(32)')
     admin = BooleanField()
-    name = StringField(ddl='varchar(50)')
-    image = StringField(ddl='varchar(500)')
+    name = StringField(ddl='varchar(32)')
+    image = StringField(ddl='varchar(512)')
 
 
 class AppServer(Model):
     __table__ = 'app_server'
 
-    created_by = IntegerField()
+    created_by = StringField(ddl='varchar(64)')
     created_date = FloatField(default=time.time)
-    updated_by = IntegerField()
+    updated_by = StringField(ddl='varchar(64)')
     updated_date = FloatField(default=time.time)
-    id = IntegerField(primary_key=True, default=next_id)
+    id = StringField(ddl='varchar(64)', primary_key=True, default=next_id)
     name = StringField(ddl='varchar(16)')
     host = StringField(ddl='varchar(16)')
     username = StringField(ddl='varchar(16)')
@@ -64,11 +64,11 @@ class AppServer(Model):
 class RootPath(Model):
     __table__ = 'root_path'
 
-    created_by = IntegerField()
+    created_by = StringField(ddl='varchar(64)')
     created_date = FloatField(default=time.time)
-    updated_by = IntegerField()
+    updated_by = StringField(ddl='varchar(64)')
     updated_date = FloatField(default=time.time)
-    id = IntegerField(primary_key=True, default=next_id)
+    id = StringField(ddl='varchar(64)', primary_key=True, default=next_id)
     name = StringField(ddl='varchar(16)')
     path = StringField(ddl='varchar(125)')
-    app_server_id = IntegerField()
+    app_server_id = StringField(ddl='varchar(64)')
