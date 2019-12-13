@@ -27,7 +27,8 @@ $(function() {
                     email = this.email.trim().toLowerCase(),
                     data = {
                         email: email,
-                        passwd: this.passwd==='' ? '' : CryptoJS.SHA1(email + ':' + this.passwd).toString()
+                        passwd: this.passwd
+                        // passwd: this.passwd==='' ? '' : CryptoJS.SHA1(email + ':' + this.passwd).toString()
                     };
                 $form.postJSON('/api/authenticate', data, function(err, result) {
                     if (! err) {

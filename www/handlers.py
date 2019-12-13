@@ -118,11 +118,13 @@ def authenticate(*, email, passwd):
         raise APIValueError('email', 'Email not exist.')
     user = users[0]
     # check passwd:
-    sha1 = hashlib.sha1()
-    sha1.update(user.id.encode('utf-8'))
-    sha1.update(b':')
-    sha1.update(passwd.encode('utf-8'))
-    if user.passwd != sha1.hexdigest():
+    # sha1 = hashlib.sha1()
+    # sha1.update(user.id.encode('utf-8'))
+    # sha1.update(b':')
+    # sha1.update(passwd.encode('utf-8'))
+    # if user.passwd != sha1.hexdigest():
+    #     raise APIValueError('passwd', 'Invalid password.')
+    if user.passwd != passwd:
         raise APIValueError('passwd', 'Invalid password.')
     # authenticate ok, set cookie:
     r = web.Response()
@@ -196,14 +198,17 @@ def api_register_user(request, *, email, name, passwd):
         raise APIValueError('name')
     if not email or not _RE_EMAIL.match(email):
         raise APIValueError('email')
-    if not passwd or not _RE_SHA1.match(passwd):
+    # if not passwd or not _RE_SHA1.match(passwd):
+    if not passwd or not passwd.strip():
         raise APIValueError('passwd')
     users = yield from User.findAll('email=?', [email])
     if len(users) > 0:
         raise APIError('register:failed', 'email', 'Email is already in use.')
     uid = next_id()
-    sha1_passwd = '%s:%s' % (uid, passwd)
-    user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
+    # sha1_passwd = '%s:%s' % (uid, passwd)
+    # user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
+    #             image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+    user = User(id=uid, name=name.strip(), email=email, passwd=passwd,
                 image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
     yield from user.save()
     # make session cookie:
