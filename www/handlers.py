@@ -298,42 +298,58 @@ def api_download(request, *, server_id, path_id, path):
     root_path = yield from RootPath.find(path_id)
     content, filename = download(hostname=app_server.host, port=app_server.ssh_port,
                                  username=app_server.username,
-                                 password=app_server.password, root_path=root_path.path, file_path=path)
+                                 password=app_server.password, root_path=root_path.path, relative_path=path)
+
     response = Response(
         content_type='application/octet-stream',
         headers={'Content-Disposition': 'attachment;filename={}'.format(filename)},
         body=content
     )
 
-    download_log = DownloadLog(id=next_id(), file=root_path.path + '/' + path, server=app_server.host, created_by_name=request.__user__.name,
+    download_log = DownloadLog(id=next_id(), file=root_path.path + '/' + path, server=app_server.host,
+                               created_by_name=request.__user__.name,
                                created_by=request.__user__.id, updated_by=request.__user__.id)
     yield from download_log.save()
     return response
 
 
-def download(hostname, port, username, password, root_path, file_path):
+def download(hostname, port, username, password, root_path, relative_path):
+    timestamp = str(time.time())
+
     transport = paramiko.Transport((hostname, port))  # 获取Transport实例
     transport.connect(username=username, password=password)  # 建立连接
 
     # 创建sftp对象，SFTPClient是定义怎么传输文件、怎么交互文件
     sftp = paramiko.SFTPClient.from_transport(transport)
 
-    # 将服务器 /www/test.py 下载到本地 aaa.py。文件下载并重命名为aaa.py
-    abs_file = '/tmp/project' + root_path + '/' + file_path
+    # 将服务器 /www/init_db.py 下载到本地 aaa.py。文件下载并重命名为aaa.py
+    abs_file = '/tmp/project' + root_path + '/' + relative_path
     abspath = os.path.split(abs_file)[0]
+
     if not os.path.exists(abspath):
         os.makedirs(abspath)
 
-    sftp.get(root_path + '/' + file_path, abs_file)
+    sftp.get(root_path + '/' + relative_path, abs_file + timestamp)
 
     # 关闭连接
     transport.close()
 
-    # zipfile.ZipFile()
+    file_path = os.path.split(abs_file)[1]
+    file_name, file_type = os.path.splitext(file_path)
+    zip_file_name = file_name + ".zip"
+    zip_file = abspath + "/" + zip_file_name
+    f = zipfile.ZipFile(zip_file + timestamp, 'w', zipfile.ZIP_DEFLATED)
+    f.write(abs_file + timestamp, file_path)
+    f.close()
 
-    with open(abs_file, 'r', encoding='utf-8') as f:
-        return f.read(), os.path.split(abs_file)[1]
-    return null, null
+    os.remove(abs_file + timestamp)
+
+    with open(zip_file + timestamp, 'rb') as f:
+        content = f.read()
+
+    os.remove(zip_file + timestamp)
+
+    return content, zip_file_name
 
 
 def get_folders_and_files(hostname, port, username, password, root_path, relative_path=''):

@@ -89,7 +89,7 @@ def create_pool(loop, **kw):
 def select(sql, args, size=None):
     log(sql, args)
     global __pool
-    with sqlite3.connect('test.db') as conn:
+    with sqlite3.connect('../app.db') as conn:
         cur = conn.cursor()
         cur.execute(sql, args or ())
         if size:
@@ -104,7 +104,7 @@ def select(sql, args, size=None):
 @asyncio.coroutine
 def execute(sql, args, autocommit=True):
     log(sql)
-    with sqlite3.connect('test.db') as conn:
+    with sqlite3.connect('../app.db') as conn:
         if not autocommit:
             conn.begin()
         try:
