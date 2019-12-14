@@ -1,0 +1,76 @@
+{% extends '__base__.html' %}
+
+{% block title %}个人信息{% endblock %}
+
+{% block beforehead %}
+
+<script>
+function validateEmail(email) {
+    var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
+    return re.test(email.toLowerCase());
+}
+
+$(function () {
+    var vm = new Vue({
+        el: '#vm',
+        data: {
+            path: {
+                id: '{{ path.id }}',
+                name: '{{ path.name }}',
+                path: '{{ path.path }}',
+            }
+        },
+        methods: {
+            submit: function (event) {
+                event.preventDefault();
+                var $form = $('#vm');
+                const vm = this
+                $form.postJSON('/api/servers/save', {
+                    server: vm.server
+                }, function (err, r) {
+                    if (err) {
+                        return $form.showFormError(err);
+                    }
+                    alert('成功！')
+                });
+            }
+        }
+    });
+    $('#vm').show();
+});
+
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+    <div class="uk-width-2-3">
+        <form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">
+            <div class="uk-alert uk-alert-danger uk-hidden"></div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">服务器:</label>
+                <div class="uk-form-controls">
+                    <input v-model="path.name" maxlength="50" placeholder="输入名字" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">名字:</label>
+                <div class="uk-form-controls">
+                    <input v-model="path.name" maxlength="50" placeholder="输入名字" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">路径:</label>
+                <div class="uk-form-controls">
+                    <input v-model="path.path" maxlength="50" placeholder="输入主机" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <button @click="submit" class="uk-button uk-button-primary"><i class="uk-icon-user"></i> 提交</button>
+                <a href="/manage/paths" class="uk-button uk-button-primary">返回</a>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

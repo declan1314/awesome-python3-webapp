@@ -107,6 +107,29 @@ def signin():
     }
 
 
+@get('/myinfo')
+def myInfo():
+    return {
+        '__template__': 'myinfo.html'
+    }
+
+
+@post('/api/changepassword')
+def change_password(request, *, passwd, newPasswd):
+    check_auth(request)
+    if request.__user__.passwd != passwd:
+        raise APIValueError('passwd', '口令错误')
+    # user = request.__user__
+    # user._replace(passwd=newPasswd)
+    user = User(id=request.__user__.id, passwd=newPasswd)
+    yield from user.update_selective()
+
+    r = web.Response()
+    r.content_type = 'application/json'
+    r.body = json.dumps('success', ensure_ascii=False).encode('utf-8')
+    return r
+
+
 @post('/api/authenticate')
 def authenticate(*, email, passwd):
     if not email:
@@ -129,7 +152,7 @@ def authenticate(*, email, passwd):
     # authenticate ok, set cookie:
     r = web.Response()
     r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
-    # user.passwd = '******'
+    user = user._replace(passwd='******')
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
     return r
@@ -144,8 +167,107 @@ def signout(request):
     return r
 
 
+@get('/manage/servers')
+def manage_servers(request, *, page='1'):
+    check_admin(request)
+    page_index = get_page_index(page)
+    num = yield from AppServer.findNumber('count(id)')
+    p = Page(num, page_index)
+
+    servers = list()
+    if num != 0:
+        servers = yield from AppServer.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
+    return {
+        '__template__': 'manage_servers.html',
+        'page_index': get_page_index(page),
+        'servers': servers
+    }
+
+
+@get('/manage/paths')
+def manage_paths(request, *, page='1'):
+    check_admin(request)
+    page_index = get_page_index(page)
+    num = yield from RootPath.findNumber('count(id)')
+    p = Page(num, page_index)
+
+    paths = list()
+    if num != 0:
+        paths = yield from RootPath.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
+
+    server_map = dict()
+    for path in paths:
+        server = yield from AppServer.find(path.app_server_id)
+        server_map[path.id] = server
+
+    return {
+        '__template__': 'manage_paths.html',
+        'page_index': get_page_index(page),
+        'paths': paths,
+        'server_map': server_map
+    }
+
+
+@get('/manage/paths/add')
+def manage_paths_add(request, *, page='1'):
+    check_admin(request)
+    return {
+        '__template__': 'manage_paths_edit.html',
+        'path': dict()
+    }
+
+
+@get('/manage/paths/edit/{id}')
+def manage_paths_edit(request, *, id):
+    check_admin(request)
+    path = yield from RootPath.find(id)
+    return {
+        '__template__': 'manage_paths_edit.html',
+        'path': path
+    }
+
+
+@get('/manage/servers/add')
+def manage_servers_add(request):
+    check_admin(request)
+    return {
+        '__template__': 'manage_servers_edit.html',
+        'server': dict()
+    }
+
+
+@get('/manage/servers/edit/{id}')
+def manage_servers_edit(request, *, id):
+    check_admin(request)
+    server = yield from AppServer.find(id)
+    return {
+        '__template__': 'manage_servers_edit.html',
+        'server': server
+    }
+
+
+@post('/api/servers/save')
+def api_servers_save(request, *, server):
+    check_admin(request)
+
+    if server['id']:
+        server = AppServer(id=server['id'], name=server['name'], host=server['host'], username=server['username'],
+                           password=server['password'], ssh_port=server['ssh_port'])
+        yield from server.update_selective()
+    else:
+        server = AppServer(id=next_id(), name=server['name'], host=server['host'], username=server['username'],
+                           password=server['password'], ssh_port=server['ssh_port'])
+        yield from server.save()
+
+    r = web.Response()
+    r.content_type = 'application/json'
+    r.body = json.dumps('success', ensure_ascii=False).encode('utf-8')
+    return r
+
+
 @get('/manage/users')
-def manage_users(*, page='1'):
+def manage_users(request, *, page='1'):
+    check_admin(request)
     return {
         '__template__': 'manage_users.html',
         'page_index': get_page_index(page)
@@ -201,7 +323,7 @@ def api_register_user(request, *, email, name, passwd):
     # if not passwd or not _RE_SHA1.match(passwd):
     if not passwd or not passwd.strip():
         raise APIValueError('passwd')
-    users = yield from User.findAll('email=?', [email])
+    users = yield from User.findAll('email=?', [email], name='good')
     if len(users) > 0:
         raise APIError('register:failed', 'email', 'Email is already in use.')
     uid = next_id()

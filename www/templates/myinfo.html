@@ -1,0 +1,100 @@
+{% extends '__base__.html' %}
+
+{% block title %}个人信息{% endblock %}
+
+{% block beforehead %}
+
+<script>
+
+function validateEmail(email) {
+    var re = /^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$/;
+    return re.test(email.toLowerCase());
+}
+
+$(function () {
+    var vm = new Vue({
+        el: '#vm',
+        data: {
+            password: '',
+            newPassword1: '',
+            newPassword2: ''
+        },
+        methods: {
+            submit: function (event) {
+                event.preventDefault();
+                var $form = $('#vm');
+                if (this.password.length < 6) {
+                    return $form.showFormError('口令长度至少为6个字符');
+                }
+                if (this.newPassword1.length < 6) {
+                    return $form.showFormError('新口令长度至少为6个字符');
+                }
+                if (this.newPassword1 !== this.newPassword2) {
+                    return $form.showFormError('两次输入的新口令不一致');
+                }
+                const vm = this
+                $form.postJSON('/api/changepassword', {
+                    passwd: this.password,
+                    newPasswd: this.newPassword1
+                    // passwd: CryptoJS.SHA1(email + ':' + this.password1).toString()
+                }, function (err, r) {
+                    if (err) {
+                        return $form.showFormError(err);
+                    }
+                    vm.password = '';
+                    vm.newPassword1 = '';
+                    vm.newPassword2 = '';
+                    alert('修改口令成功！')
+                });
+            }
+        }
+    });
+    $('#vm').show();
+});
+
+</script>
+
+{% endblock %}
+
+{% block content %}
+
+    <div class="uk-width-2-3">
+        <form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">
+            <div class="uk-alert uk-alert-danger uk-hidden"></div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">名字:</label>
+                <div class="uk-form-controls">
+                    {{ __user__.name }}
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">电子邮件:</label>
+                <div class="uk-form-controls">
+                    {{ __user__.email }}
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">输入口令:</label>
+                <div class="uk-form-controls">
+                    <input v-model="password" type="password" maxlength="50" placeholder="输入口令" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">输入新口令:</label>
+                <div class="uk-form-controls">
+                    <input v-model="newPassword1" type="password" maxlength="50" placeholder="输入新口令" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <label class="uk-form-label">重复新口令:</label>
+                <div class="uk-form-controls">
+                    <input v-model="newPassword2" type="password" maxlength="50" placeholder="重复新口令" class="uk-width-1-1">
+                </div>
+            </div>
+            <div class="uk-form-row">
+                <button @click="submit" class="uk-button uk-button-primary"><i class="uk-icon-user"></i> 重置口令</button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

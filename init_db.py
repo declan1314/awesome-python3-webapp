@@ -17,8 +17,9 @@ cursor.execute("create table download_log (created_by varchar(64),created_date r
 cursor.execute("insert into user values('0015758794996946c7296785da9412fa70ccab8efb59556000',1575879499.69407,"
                "'0015758794996946c7296785da9412fa70ccab8efb59556000',1575879499.69407,"
                "'0015758794996946c7296785da9412fa70ccab8efb59556000','admin@qq.com',"
-               "'admin',1,'管理员',"
+               "'admin123',1,'管理员',"
                "'http://www.gravatar.com/avatar/5a1220e7b9f5d91a4e6c3a0206f2d294?d=mm&s=120',1);")
+
 
 results = cursor.fetchall()
 for row in results:

@@ -40,14 +40,17 @@
                 <ul class="uk-navbar-nav">
                 {% if __user__ %}
                     {% if __user__.admin %}
-                        <li><a href="/manage/logs">日志管理</a></li>
-                        <li><a href="/manage/users">用户管理</a></li>
+                        <li><a href="/manage/servers"><i class="uk-icon-gears"></i> 服务器管理</a></li>
+                        <li><a href="/manage/paths"><i class="uk-icon-gears"></i> 根路径管理</a></li>
+                        <li><a href="/manage/logs"><i class="uk-icon-gears"></i> 日志管理</a></li>
+                        <li><a href="/manage/users"><i class="uk-icon-gears"></i> 用户管理</a></li>
                         <li><a href="/register"><i class="uk-icon-edit"></i> 注册</a></li>
                     {% endif %}
                     <li class="uk-parent" data-uk-dropdown>
                         <a href="#0"><i class="uk-icon-user"></i> {{ __user__.name }}</a>
                         <div class="uk-dropdown uk-dropdown-navbar">
                             <ul class="uk-nav uk-nav-navbar">
+                                <li><a href="/myinfo"><i class="uk-icon-male"></i> 个人信息</a></li>
                                 <li><a href="/signout"><i class="uk-icon-sign-out"></i> 登出</a></li>
                             </ul>
                         </div>

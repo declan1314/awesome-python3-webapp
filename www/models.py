@@ -28,7 +28,6 @@ class DownloadLog(Model):
     server = StringField(ddl='varchar(64)')
     file = StringField(ddl='varchar(256)')
     created_by_name = StringField(ddl='varchar(64)')
-    enable_flag = BooleanField()
 
 
 class User(Model):
@@ -58,7 +57,7 @@ class AppServer(Model):
     host = StringField(ddl='varchar(16)')
     username = StringField(ddl='varchar(16)')
     password = StringField(ddl='varchar(32)')
-    ssh_port = IntegerField()
+    ssh_port = IntegerField(default=22)
 
 
 class RootPath(Model):
