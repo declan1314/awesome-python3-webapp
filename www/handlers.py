@@ -221,9 +221,12 @@ def manage_paths_add(request, *, page='1'):
 def manage_paths_edit(request, *, id):
     check_admin(request)
     path = yield from RootPath.find(id)
+
+    servers = yield from AppServer.findAll(orderBy='name desc')
     return {
         '__template__': 'manage_paths_edit.html',
-        'path': path
+        'path': path,
+        'servers': servers
     }
 
 
@@ -246,18 +249,35 @@ def manage_servers_edit(request, *, id):
     }
 
 
+@post('/api/paths/save')
+def api_paths_save(request, *, path):
+    check_admin(request)
+
+    if path['id']:
+        path_model = RootPath(id=path['id'], name=path['name'], path=path['path'], app_server_id=path['app_server_id'])
+        yield from path_model.update_selective()
+    else:
+        path_model = RootPath(id=next_id(), name=path['name'], path=path['path'], app_server_id=path['app_server_id'])
+        yield from path_model.save()
+
+    r = web.Response()
+    r.content_type = 'application/json'
+    r.body = json.dumps('success', ensure_ascii=False).encode('utf-8')
+    return r
+
+
 @post('/api/servers/save')
 def api_servers_save(request, *, server):
     check_admin(request)
 
     if server['id']:
-        server = AppServer(id=server['id'], name=server['name'], host=server['host'], username=server['username'],
+        server_model = AppServer(id=server['id'], name=server['name'], host=server['host'], username=server['username'],
                            password=server['password'], ssh_port=server['ssh_port'])
-        yield from server.update_selective()
+        yield from server_model.update_selective()
     else:
-        server = AppServer(id=next_id(), name=server['name'], host=server['host'], username=server['username'],
+        server_model = AppServer(id=next_id(), name=server['name'], host=server['host'], username=server['username'],
                            password=server['password'], ssh_port=server['ssh_port'])
-        yield from server.save()
+        yield from server_model.save()
 
     r = web.Response()
     r.content_type = 'application/json'
@@ -374,7 +394,7 @@ def api_paths(request, *, id, page=1):
     if num == 0:
         root_paths = []
     else:
-        root_paths = yield from RootPath.findAll(orderBy='created_date desc', where='app_server_id = ' + id,
+        root_paths = yield from RootPath.findAll(orderBy='created_date desc', where='app_server_id = "' + id + '"',
                                                  limit=(page.offset, page.limit))
     back_url = '/api/servers'
 
@@ -515,7 +535,8 @@ def get_folders_and_files(hostname, port, username, password, root_path, relativ
 
     cmd_get_sqls = 'cd ' + root_path + relative_path_left + ";ls -alt | grep '^-' | awk '{print $9}'"
     sqls = run_shell(cmd_get_sqls)
-    f_list.extend([{'value': relative_path_right + each, 'type': 'file', 'name': each} for each in sqls.split('\n')])
+    if len(sqls) > 0:
+        f_list.extend([{'value': relative_path_right + each, 'type': 'file', 'name': each} for each in sqls.split('\n')])
 
     # 关闭连接
     ssh.close()

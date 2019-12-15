@@ -18,6 +18,7 @@ $(function () {
                 id: '{{ path.id }}',
                 name: '{{ path.name }}',
                 path: '{{ path.path }}',
+                app_server_id: '{{ path.app_server_id }}'
             }
         },
         methods: {
@@ -25,13 +26,13 @@ $(function () {
                 event.preventDefault();
                 var $form = $('#vm');
                 const vm = this
-                $form.postJSON('/api/servers/save', {
-                    server: vm.server
+                $form.postJSON('/api/paths/save', {
+                    path: vm.path
                 }, function (err, r) {
                     if (err) {
                         return $form.showFormError(err);
                     }
-                    alert('成功！')
+                    alert('成功！');
                 });
             }
         }
@@ -44,14 +45,17 @@ $(function () {
 {% endblock %}
 
 {% block content %}
-
     <div class="uk-width-2-3">
         <form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">
             <div class="uk-alert uk-alert-danger uk-hidden"></div>
             <div class="uk-form-row">
                 <label class="uk-form-label">服务器:</label>
                 <div class="uk-form-controls">
-                    <input v-model="path.name" maxlength="50" placeholder="输入名字" class="uk-width-1-1">
+                    <select v-model="path.app_server_id">
+                      {% for server in servers %}
+                          <option value="{{server.id}}">{{server.name}}</option>
+                      {% endfor %}
+                    </select>
                 </div>
             </div>
             <div class="uk-form-row">
