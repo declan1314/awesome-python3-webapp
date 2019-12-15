@@ -211,24 +211,25 @@ def manage_paths(request, *, page='1'):
 @get('/manage/paths/add')
 def manage_paths_add(request, *, page='1'):
     check_admin(request)
-    return {
-        '__template__': 'manage_paths_edit.html',
-        'path': dict()
-    }
+    return manage_paths_add_edit(None)
 
 
 @get('/manage/paths/edit/{id}')
 def manage_paths_edit(request, *, id):
     check_admin(request)
-    path = yield from RootPath.find(id)
+    return manage_paths_add_edit(id)
 
+
+def manage_paths_add_edit(id):
+    path = dict()
+    if id:
+        path = yield from RootPath.find(id)
     servers = yield from AppServer.findAll(orderBy='name desc')
     return {
         '__template__': 'manage_paths_edit.html',
         'path': path,
         'servers': servers
     }
-
 
 @get('/manage/servers/add')
 def manage_servers_add(request):
@@ -537,6 +538,7 @@ def get_folders_and_files(hostname, port, username, password, root_path, relativ
     sqls = run_shell(cmd_get_sqls)
     if len(sqls) > 0:
         f_list.extend([{'value': relative_path_right + each, 'type': 'file', 'name': each} for each in sqls.split('\n')])
+
 
     # 关闭连接
     ssh.close()

@@ -27,6 +27,26 @@ $(function () {
             submit: function (event) {
                 event.preventDefault();
                 var $form = $('#vm');
+                if (!this.server.name) {
+                    return $form.showFormError('名字不能为空！');
+                }
+
+                if (!this.server.host) {
+                    return $form.showFormError('主机不能为空！');
+                }
+
+                if (!this.server.ssh_port) {
+                    return $form.showFormError('ssh端口不能为空！');
+                }
+
+                if (!this.server.username) {
+                    return $form.showFormError('用户名不能为空！');
+                }
+
+                if (!this.server.password) {
+                    return $form.showFormError('密码不能为空！');
+                }
+
                 const vm = this
                 $form.postJSON('/api/servers/save', {
                     server: vm.server
@@ -34,7 +54,7 @@ $(function () {
                     if (err) {
                         return $form.showFormError(err);
                     }
-                    alert('成功！')
+                    location.href='/manage/servers';
                 });
             }
         }
