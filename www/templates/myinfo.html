@@ -58,6 +58,14 @@ $(function () {
 
 {% block content %}
 
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <div class="uk-panel uk-panel-box">
+            <ul class="uk-breadcrumb">
+                <li class="uk-active"><span>个人信息</span></li>
+            </ul>
+        </div>
+    </div>
+
     <div class="uk-width-2-3">
         <form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">
             <div class="uk-alert uk-alert-danger uk-hidden"></div>
