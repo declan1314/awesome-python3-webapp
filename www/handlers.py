@@ -363,23 +363,31 @@ def manage_users(request, *, page_index='1'):
 
 
 @get('/manage/logs')
-def manage_logs(*, page='1'):
+def manage_logs(request, *, page_index='1'):
+    check_admin(request)
+    page_index = get_page_index(page_index)
+    num = yield from DownloadLog.findNumber('count(id)')
+    page = Page(num, page_index)
+    download_logs = list()
+    if num != 0:
+        download_logs = yield from DownloadLog.findAll(orderBy='created_date desc', limit=(page.offset, page.limit))
     return {
         '__template__': 'manage_logs.html',
-        'page_index': get_page_index(page)
+        'page': page,
+        'download_logs': download_logs
     }
 
 
-@get('/api/logs')
-def api_get_logs(request, *, page='1'):
-    check_admin(request)
-    page_index = get_page_index(page)
-    num = yield from DownloadLog.findNumber('count(id)')
-    p = Page(num, page_index)
-    if num == 0:
-        return dict(page=p, users=())
-    download_logs = yield from DownloadLog.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
-    return dict(page=p, download_logs=[download_log._asdict() for download_log in download_logs])
+# @get('/api/logs')
+# def api_get_logs(request, *, page='1'):
+#     check_admin(request)
+#     page_index = get_page_index(page)
+#     num = yield from DownloadLog.findNumber('count(id)')
+#     p = Page(num, page_index)
+#     if num == 0:
+#         return dict(page=p, users=())
+#     download_logs = yield from DownloadLog.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
+#     return dict(page=p, download_logs=[download_log._asdict() for download_log in download_logs])
 
 
 # @get('/api/users')

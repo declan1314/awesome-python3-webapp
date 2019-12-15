@@ -43,7 +43,7 @@
                             <a href="mailto: {{ user.email }}">{{ user.email }}</a>
                         </td>
                         <td>
-                            <span>{{ user.created_date }}</span>
+                            <span>{{ user.created_date | datetime }}</span>
                         </td>
                         <td>
                            <a href="/manage/users/edit/{{ user.id }}" class="uk-button uk-button-primary"><i class="uk-icon-edit"></i> 编辑</a>
