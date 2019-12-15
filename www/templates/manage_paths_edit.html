@@ -1,6 +1,6 @@
 {% extends '__base__.html' %}
 
-{% block title %}个人信息{% endblock %}
+{% block title %}根路径编辑{% endblock %}
 
 {% block beforehead %}
 
@@ -58,6 +58,15 @@ $(function () {
 {% endblock %}
 
 {% block content %}
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <div class="uk-panel uk-panel-box">
+            <ul class="uk-breadcrumb">
+                <li class="uk-active"><a href="/manage/paths">根路径列表</a></li>
+                <li class="uk-active"><span>根路径编辑</span></li>
+            </ul>
+        </div>
+    </div>
+
     <div class="uk-width-2-3">
         <form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">
             <div class="uk-alert uk-alert-danger uk-hidden"></div>

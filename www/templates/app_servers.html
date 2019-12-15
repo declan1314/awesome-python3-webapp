@@ -21,10 +21,10 @@
     <div class="uk-width-medium-3-4">
     {% for server in servers %}
         <article class="uk-article">
-            <a href="/api/servers/{{ server.id }}/paths">{{ server.name }}({{server.host}})</a>
+            <a href="/servers/{{ server.id }}/paths">{{ server.name }}({{server.host}})</a>
         </article>
         <hr class="uk-article-divider">
     {% endfor %}
-    {{ pagination('/?page=', page) }}
+    {{ pagination('/servers?page_index=', page) }}
     </div>
 {% endblock %}

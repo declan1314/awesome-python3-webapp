@@ -167,33 +167,16 @@ def signout(request):
     return r
 
 
-@get('/manage/servers')
-def manage_servers(request, *, page='1'):
-    check_admin(request)
-    page_index = get_page_index(page)
-    num = yield from AppServer.findNumber('count(id)')
-    p = Page(num, page_index)
-
-    servers = list()
-    if num != 0:
-        servers = yield from AppServer.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
-    return {
-        '__template__': 'manage_servers.html',
-        'page_index': get_page_index(page),
-        'servers': servers
-    }
-
-
 @get('/manage/paths')
-def manage_paths(request, *, page='1'):
+def manage_paths(request, *, page_index='1'):
     check_admin(request)
-    page_index = get_page_index(page)
+    page_index = get_page_index(page_index)
     num = yield from RootPath.findNumber('count(id)')
-    p = Page(num, page_index)
+    page = Page(num, page_index)
 
     paths = list()
     if num != 0:
-        paths = yield from RootPath.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
+        paths = yield from RootPath.findAll(orderBy='created_date desc', limit=(page.offset, page.limit))
 
     server_map = dict()
     for path in paths:
@@ -202,7 +185,7 @@ def manage_paths(request, *, page='1'):
 
     return {
         '__template__': 'manage_paths.html',
-        'page_index': get_page_index(page),
+        'page': page,
         'paths': paths,
         'server_map': server_map
     }
@@ -220,6 +203,13 @@ def manage_paths_edit(request, *, id):
     return manage_paths_add_edit(id)
 
 
+@get('/manage/paths/delete/{id}')
+def manage_paths_delete(request, *, id):
+    check_admin(request)
+    yield from RootPath(id=id).remove()
+    return 'redirect:/manage/paths'
+
+
 def manage_paths_add_edit(id):
     path = dict()
     if id:
@@ -230,6 +220,24 @@ def manage_paths_add_edit(id):
         'path': path,
         'servers': servers
     }
+
+
+@get('/manage/servers')
+def manage_servers(request, *, page_index='1'):
+    check_admin(request)
+    page_index = get_page_index(page_index)
+    num = yield from AppServer.findNumber('count(id)')
+    page = Page(num, page_index)
+
+    servers = list()
+    if num != 0:
+        servers = yield from AppServer.findAll(orderBy='created_date desc', limit=(page.offset, page.limit))
+    return {
+        '__template__': 'manage_servers.html',
+        'page': page,
+        'servers': servers
+    }
+
 
 @get('/manage/servers/add')
 def manage_servers_add(request):
@@ -248,6 +256,13 @@ def manage_servers_edit(request, *, id):
         '__template__': 'manage_servers_edit.html',
         'server': server
     }
+
+
+@get('/manage/servers/delete/{id}')
+def manage_servers_delete(request, *, id):
+    check_admin(request)
+    yield from AppServer(id=id).remove()
+    return 'redirect:/manage/servers'
 
 
 @post('/api/paths/save')
@@ -273,11 +288,11 @@ def api_servers_save(request, *, server):
 
     if server['id']:
         server_model = AppServer(id=server['id'], name=server['name'], host=server['host'], username=server['username'],
-                           password=server['password'], ssh_port=server['ssh_port'])
+                                 password=server['password'], ssh_port=server['ssh_port'])
         yield from server_model.update_selective()
     else:
         server_model = AppServer(id=next_id(), name=server['name'], host=server['host'], username=server['username'],
-                           password=server['password'], ssh_port=server['ssh_port'])
+                                 password=server['password'], ssh_port=server['ssh_port'])
         yield from server_model.save()
 
     r = web.Response()
@@ -286,12 +301,64 @@ def api_servers_save(request, *, server):
     return r
 
 
-@get('/manage/users')
-def manage_users(request, *, page='1'):
+@get('/manage/users/add')
+def manage_users_add(request):
     check_admin(request)
     return {
+        '__template__': 'manage_users_edit.html',
+        'user': dict()
+    }
+
+
+@get('/manage/users/edit/{id}')
+def manage_users_edit(request, *, id):
+    check_admin(request)
+    user = yield from User.find(id)
+    return {
+        '__template__': 'manage_users_edit.html',
+        'user': user
+    }
+
+
+@get('/manage/users/delete/{id}')
+def manage_users_delete(request, *, id):
+    check_admin(request)
+    yield from User(id=id).remove()
+    return 'redirect:/manage/users'
+
+
+@post('/api/users/save')
+def api_users_save(request, *, user):
+    check_admin(request)
+
+    if user['id']:
+        user_model = User(id=user['id'], name=user['name'], email=user['email'], password=user['password'])
+        yield from user_model.update_selective()
+    else:
+        user_model = User(id=next_id(), name=user['name'], email=user['email'], password=user['password'])
+        yield from user_model.save()
+
+    r = web.Response()
+    r.content_type = 'application/json'
+    r.body = json.dumps('success', ensure_ascii=False).encode('utf-8')
+    return r
+
+
+@get('/manage/users')
+def manage_users(request, *, page_index='1'):
+    check_admin(request)
+    page_index = get_page_index(page_index)
+    num = yield from User.findNumber('count(id)')
+    page = Page(num, page_index)
+
+    users = list()
+    if num != 0:
+        users = yield from User.findAll(orderBy='created_date desc', limit=(page.offset, page.limit))
+
+    return {
         '__template__': 'manage_users.html',
-        'page_index': get_page_index(page)
+        'page': page,
+        'users': users
     }
 
 
@@ -315,18 +382,18 @@ def api_get_logs(request, *, page='1'):
     return dict(page=p, download_logs=[download_log._asdict() for download_log in download_logs])
 
 
-@get('/api/users')
-def api_get_users(request, *, page='1'):
-    check_admin(request)
-    page_index = get_page_index(page)
-    num = yield from User.findNumber('count(id)')
-    p = Page(num, page_index)
-    if num == 0:
-        return dict(page=p, users=())
-    users = yield from User.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
-    # for u in users:
-    #     u.passwd = '******'
-    return dict(page=p, users=[user._asdict() for user in users])
+# @get('/api/users')
+# def api_get_users(request, *, page='1'):
+#     check_admin(request)
+#     page_index = get_page_index(page)
+#     num = yield from User.findNumber('count(id)')
+#     p = Page(num, page_index)
+#     if num == 0:
+#         return dict(page=p, users=())
+#     users = yield from User.findAll(orderBy='created_date desc', limit=(p.offset, p.limit))
+#     # for u in users:
+#     #     u.passwd = '******'
+#     return dict(page=p, users=[user._asdict() for user in users])
 
 
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
@@ -365,20 +432,19 @@ def api_register_user(request, *, email, name, passwd):
 
 @get('/')
 def main_page(*, page='1'):
-    return 'redirect:/api/servers'
+    return 'redirect:/servers'
 
 
-@get('/api/servers')
-def api_servers(request, *, page='1'):
+@get('/servers')
+def page_servers(request, *, page_index='1'):
     check_auth(request)
-
-    page_index = get_page_index(page)
+    page_index = get_page_index(page_index)
     num = yield from AppServer.findNumber('count(id)')
     page = Page(num, page_index)
-    if num == 0:
-        app_servers = []
-    else:
+    app_servers = list()
+    if num != 0:
         app_servers = yield from AppServer.findAll(orderBy='created_date desc', limit=(page.offset, page.limit))
+
     return {
         '__template__': 'app_servers.html',
         'page': page,
@@ -386,42 +452,43 @@ def api_servers(request, *, page='1'):
     }
 
 
-@get('/api/servers/{id}/paths')
-def api_paths(request, *, id, page=1):
+@get('/servers/{server_id}/paths')
+def page_servers_paths(request, *, server_id, page_index='1'):
     check_auth(request)
-    page_index = get_page_index(page)
-    num = yield from RootPath.findNumber('count(id)')
+    page_index = get_page_index(page_index)
+    num = yield from RootPath.findNumber('count(id)', where='app_server_id = "' + server_id + '"')
     page = Page(num, page_index)
-    if num == 0:
-        root_paths = []
-    else:
-        root_paths = yield from RootPath.findAll(orderBy='created_date desc', where='app_server_id = "' + id + '"',
-                                                 limit=(page.offset, page.limit))
-    back_url = '/api/servers'
 
-    app_server = yield from AppServer.find(id)
+    root_paths = list()
+    if num != 0:
+        root_paths = yield from RootPath.findAll(orderBy='created_date desc',
+                                                 where='app_server_id = "' + server_id + '"',
+                                                 limit=(page.offset, page.limit))
+    back_url = '/servers'
+
+    app_server = yield from AppServer.find(server_id)
 
     return {
         '__template__': 'root_paths.html',
         'page': page,
         'paths': root_paths,
-        'server_id': id,
+        'server_id': server_id,
         'back_url': back_url,
         'server': app_server
     }
 
 
-@get('/api/servers/{server_id}/paths/{path_id}')
-def api_root_path(request, *, server_id, path_id):
-    return get_path(request, server_id, path_id)
+@get('/servers/{server_id}/paths/{path_id}')
+def page_root_path(request, *, server_id, path_id):
+    return common_get_path(request, server_id, path_id)
 
 
-@get('/api/servers/{server_id}/paths/{path_id}/path/{path}')
-def api_path(request, *, server_id, path_id, path):
-    return get_path(request, server_id, path_id, path)
+@get('/servers/{server_id}/paths/{path_id}/path/{path}')
+def page_path(request, *, server_id, path_id, path):
+    return common_get_path(request, server_id, path_id, path)
 
 
-def get_path(request, server_id, path_id, path=''):
+def common_get_path(request, server_id, path_id, path=''):
     check_auth(request)
     app_server = yield from AppServer.find(server_id)
     root_path = yield from RootPath.find(path_id)
@@ -429,8 +496,8 @@ def get_path(request, server_id, path_id, path=''):
                                    username=app_server.username,
                                    password=app_server.password, root_path=root_path.path, relative_path=path)
 
-    back_url = '/api/servers/' + server_id + '/paths' + ('/' + path_id if not len(path) == 0 else '') + (
-        '/path' + path[:path.rfind('/')] if not len(path) == 0 and path.rfind('/') != -1 else '')
+    back_url = '/servers/' + server_id + '/paths' + ('/' + path_id if not len(path) == 0 else '') + (
+        '/path/' + path[:path.rfind('/')] if not len(path) == 0 and path.rfind('/') != -1 else '')
     return {
         '__template__': 'root_path.html',
         'f_list': f_list,
@@ -440,13 +507,13 @@ def get_path(request, server_id, path_id, path=''):
     }
 
 
-@get('/api/servers/{server_id}/paths/{path_id}/path/{path}/download')
-def api_download(request, *, server_id, path_id, path):
+@get('/servers/{server_id}/paths/{path_id}/path/{path}/download')
+def download(request, *, server_id, path_id, path):
     app_server = yield from AppServer.find(server_id)
     root_path = yield from RootPath.find(path_id)
-    content, filename = download(hostname=app_server.host, port=app_server.ssh_port,
-                                 username=app_server.username,
-                                 password=app_server.password, root_path=root_path.path, relative_path=path)
+    content, filename = download_file(hostname=app_server.host, port=app_server.ssh_port,
+                                      username=app_server.username,
+                                      password=app_server.password, root_path=root_path.path, relative_path=path)
 
     response = Response(
         content_type='application/octet-stream',
@@ -461,7 +528,7 @@ def api_download(request, *, server_id, path_id, path):
     return response
 
 
-def download(hostname, port, username, password, root_path, relative_path):
+def download_file(hostname, port, username, password, root_path, relative_path):
     timestamp = str(time.time())
 
     transport = paramiko.Transport((hostname, port))  # 获取Transport实例
@@ -477,7 +544,7 @@ def download(hostname, port, username, password, root_path, relative_path):
     if not os.path.exists(abspath):
         os.makedirs(abspath)
 
-    sftp.get(root_path + '/' + relative_path, abs_file + timestamp)
+    yield from sftp.get(root_path + '/' + relative_path, abs_file + timestamp)
 
     # 关闭连接
     transport.close()
@@ -537,8 +604,8 @@ def get_folders_and_files(hostname, port, username, password, root_path, relativ
     cmd_get_sqls = 'cd ' + root_path + relative_path_left + ";ls -alt | grep '^-' | awk '{print $9}'"
     sqls = run_shell(cmd_get_sqls)
     if len(sqls) > 0:
-        f_list.extend([{'value': relative_path_right + each, 'type': 'file', 'name': each} for each in sqls.split('\n')])
-
+        f_list.extend(
+            [{'value': relative_path_right + each, 'type': 'file', 'name': each} for each in sqls.split('\n')])
 
     # 关闭连接
     ssh.close()

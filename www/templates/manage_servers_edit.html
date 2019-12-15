@@ -67,6 +67,14 @@ $(function () {
 {% endblock %}
 
 {% block content %}
+    <div class="uk-width-1-1 uk-margin-bottom">
+        <div class="uk-panel uk-panel-box">
+            <ul class="uk-breadcrumb">
+                <li class="uk-active"><a href="/manage/servers">服务器列表</a></li>
+                <li class="uk-active"><span>服务器编辑</span></li>
+            </ul>
+        </div>
+    </div>
 
     <div class="uk-width-2-3">
         <form id="vm" v-on="submit: submit" class="uk-form uk-form-stacked">

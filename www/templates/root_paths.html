@@ -1,6 +1,6 @@
 {% extends '__base__.html' %}
 
-{% block title %}服务器{% endblock %}
+{% block title %}根路径{% endblock %}
 
 {% block beforehead %}
 
@@ -13,7 +13,7 @@
     <div class="uk-width-1-1 uk-margin-bottom">
         <div class="uk-panel uk-panel-box">
             <ul class="uk-breadcrumb">
-                <li class="uk-active"><a href="/api/servers">服务器【{{ server.name }}({{ server.host }})】</a></li>
+                <li class="uk-active"><a href="/servers">服务器【{{ server.name }}({{ server.host }})】</a></li>
                 <li class="uk-active"><span>根路径</span></li>
             </ul>
         </div>
@@ -23,9 +23,9 @@
     <a style="color: darkgreen;" href="{{ back_url }}">返回</a>
     <hr class="uk-article-divider">
     {% for path in paths %}
-        <a href="/api/servers/{{ server_id }}/paths/{{ path.id }}">{{ path.name }}({{ path.path }})</a>
+        <a href="/servers/{{ server_id }}/paths/{{ path.id }}">{{ path.name }}({{ path.path }})</a>
         <hr class="uk-article-divider">
     {% endfor %}
-    {{ pagination('/?page=', page) }}
+    {{ pagination('/servers/' + server_id + '/paths?page_index=', page) }}
     </div>
 {% endblock %}

@@ -4,34 +4,6 @@
 
 {% block beforehead %}
 
-<script>
-
-function initVM(data) {
-    $('#vm').show();
-    console.log(data)
-    var vm = new Vue({
-        el: '#vm',
-        data: {
-            users: data.users,
-            page: data.page
-        }
-    });
-}
-
-$(function() {
-    getJSON('/api/users', {
-        page: {{ page_index }}
-    }, function (err, results) {
-        if (err) {
-            return fatal(err);
-        }
-        $('#loading').hide();
-        initVM(results);
-    });
-});
-
-</script>
-
 {% endblock %}
 
 {% block content %}
@@ -39,7 +11,7 @@ $(function() {
     <div class="uk-width-1-1 uk-margin-bottom">
         <div class="uk-panel uk-panel-box">
             <ul class="uk-breadcrumb">
-                <li class="uk-active"><span>用户管理</span></li>
+                <li class="uk-active"><span>用户列表</span></li>
             </ul>
         </div>
     </div>
@@ -47,35 +19,41 @@ $(function() {
     <div id="error" class="uk-width-1-1">
     </div>
 
-    <div id="loading" class="uk-width-1-1 uk-text-center">
-        <span><i class="uk-icon-spinner uk-icon-medium uk-icon-spin"></i> 正在加载...</span>
-    </div>
-
-    <div id="vm" class="uk-width-1-1">
+    <div class="uk-width-1-1">
+        <a href="/manage/users/add" type="submit" class="uk-button uk-button-primary fr"><i class="uk-icon-plus"></i> 新增</a>
         <table class="uk-table uk-table-hover">
             <thead>
                 <tr>
-                    <th class="uk-width-4-10">名字</th>
-                    <th class="uk-width-4-10">电子邮件</th>
-                    <th class="uk-width-2-10">注册时间</th>
+                    <th class="uk-width-2-10">名字</th>
+                    <th class="uk-width-3-10">电子邮件</th>
+                    <th class="uk-width-3-10">创建时间</th>
+                    <th class="uk-width-2-10">操作</th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-repeat="user: users">
-                    <td>
-                        <span v-text="user.name"></span>
-                        <span v-if="user.admin" style="color:#d05"><i class="uk-icon-key"></i> 管理员</span>
-                    </td>
-                    <td>
-                        <a v-attr="href: 'mailto:'+user.email" v-text="user.email"></a>
-                    </td>
-                    <td>
-                        <span v-text="user.created_date.toDateTime()"></span>
-                    </td>
-                </tr>
+                {% for user in users %}
+                    <tr>
+                        <td>
+                            <span>{{ user.name }}</span>
+                            {% if user.admin %}
+                                <span style="color:#d05"><i class="uk-icon-key"></i> 管理员</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="mailto: {{ user.email }}">{{ user.email }}</a>
+                        </td>
+                        <td>
+                            <span>{{ user.created_date }}</span>
+                        </td>
+                        <td>
+                           <a href="/manage/users/edit/{{ user.id }}" class="uk-button uk-button-primary"><i class="uk-icon-edit"></i> 编辑</a>
+                           <a href="/manage/users/delete/{{ user.id }}" class="uk-button uk-button-danger"><i class="uk-icon-remove"></i> 删除</a>
+                        </td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
-        <div v-component="pagination" v-with="page"></div>
+        {{ pagination('/manage/users?page_index=', page) }}
     </div>
 
 {% endblock %}
